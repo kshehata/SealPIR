@@ -47,18 +47,9 @@ void gen_params(uint64_t ele_num, uint64_t ele_size, uint32_t N, uint32_t logt,
     cout << "number of FV plaintexts = " << plaintext_num << endl;
 #endif
 
-    vector<Modulus> coeff_mod_array;
-    uint32_t logq = 0;
-
-    for (uint32_t i = 0; i < 1; i++) {
-        coeff_mod_array.emplace_back(Modulus());
-        // TODO: where to get this value now??
-        // coeff_mod_array[i] = DefaultParams::small_mods_60bit(i);
-        logq += coeff_mod_array[i].bit_count();
-    }
-
     params.set_poly_modulus_degree(N);
-    params.set_coeff_modulus(coeff_mod_array);
+    // TODO(kshehata): is this the correct way to do this?
+    params.set_coeff_modulus(CoeffModulus::Create(64, { 60 }));
     params.set_plain_modulus(plain_mod);
 
     vector<uint64_t> nvec = get_dimensions(plaintext_num, d);
