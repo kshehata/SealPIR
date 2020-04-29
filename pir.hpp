@@ -9,6 +9,8 @@
 
 #define CIPHER_SIZE 32841
 
+using seal::SEALContext;
+
 typedef std::vector<seal::Plaintext> Database;
 typedef std::vector<std::vector<seal::Ciphertext>> PirQuery;
 typedef std::vector<seal::Ciphertext> PirReply;
@@ -63,12 +65,19 @@ std::vector<std::uint64_t> compute_indices(std::uint64_t desiredIndex,
                                            std::vector<std::uint64_t> nvec);
 
 // Serialize and deserialize ciphertexts to send them over the network
-PirQuery deserialize_query(std::uint32_t d, uint32_t count, std::string s, std::uint32_t len_ciphertext);
-std::vector<seal::Ciphertext> deserialize_ciphertexts(std::uint32_t count, std::string s,
-                                                      std::uint32_t len_ciphertext);
+PirQuery deserialize_query(std::shared_ptr<SEALContext> context,
+  std::uint32_t d, uint32_t count, std::string s,
+  std::uint32_t len_ciphertext);
+
+std::vector<seal::Ciphertext> deserialize_ciphertexts(
+    std::shared_ptr<SEALContext> context,
+    std::uint32_t count, std::string s,
+    std::uint32_t len_ciphertext);
+
 std::string serialize_ciphertexts(std::vector<seal::Ciphertext> c);
 std::string serialize_query(std::vector<std::vector<seal::Ciphertext>> c);
 
 // Serialize and deserialize galois keys to send them over the network
 std::string serialize_galoiskeys(seal::GaloisKeys g);
-seal::GaloisKeys *deserialize_galoiskeys(std::string s);
+seal::GaloisKeys *deserialize_galoiskeys(
+  std::shared_ptr<SEALContext> context, std::string s);

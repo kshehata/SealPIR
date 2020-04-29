@@ -24,6 +24,7 @@ class PIRServer {
     void set_galois_key(std::uint32_t client_id, seal::GaloisKeys galkey);
 
   private:
+    std::shared_ptr<seal::SEALContext> context_;
     seal::EncryptionParameters params_; // SEAL parameters
     PirParams pir_params_;              // PIR parameters
     std::unique_ptr<Database> db_;

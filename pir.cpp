@@ -47,12 +47,13 @@ void gen_params(uint64_t ele_num, uint64_t ele_size, uint32_t N, uint32_t logt,
     cout << "number of FV plaintexts = " << plaintext_num << endl;
 #endif
 
-    vector<SmallModulus> coeff_mod_array;
+    vector<Modulus> coeff_mod_array;
     uint32_t logq = 0;
 
     for (uint32_t i = 0; i < 1; i++) {
-        coeff_mod_array.emplace_back(SmallModulus());
-        coeff_mod_array[i] = DefaultParams::small_mods_60bit(i);
+        coeff_mod_array.emplace_back(Modulus());
+        // TODO: where to get this value now??
+        // coeff_mod_array[i] = DefaultParams::small_mods_60bit(i);
         logq += coeff_mod_array[i].bit_count();
     }
 
@@ -205,26 +206,33 @@ vector<uint64_t> compute_indices(uint64_t desiredIndex, vector<uint64_t> Nvec) {
     return result;
 }
 
-inline Ciphertext deserialize_ciphertext(string s) {
+inline Ciphertext deserialize_ciphertext(
+    std::shared_ptr<SEALContext> context, string s) {
     Ciphertext c;
     std::istringstream input(s);
-    c.unsafe_load(input);
+    c.unsafe_load(context, input);
     return c;
 }
 
 
-vector<Ciphertext> deserialize_ciphertexts(uint32_t count, string s, uint32_t len_ciphertext) {
+vector<Ciphertext> deserialize_ciphertexts(
+    std::shared_ptr<SEALContext> context, uint32_t count, string s,
+    uint32_t len_ciphertext) {
+
     vector<Ciphertext> c;
     for (uint32_t i = 0; i < count; i++) {
-        c.push_back(deserialize_ciphertext(s.substr(i * len_ciphertext, len_ciphertext)));
+        c.push_back(deserialize_ciphertext(context, s.substr(i * len_ciphertext, len_ciphertext)));
     }
     return c;
 }
 
-PirQuery deserialize_query(uint32_t d, uint32_t count, string s, uint32_t len_ciphertext) {
+PirQuery deserialize_query(std::shared_ptr<SEALContext> context,
+    uint32_t d, uint32_t count, string s, uint32_t len_ciphertext) {
+
     vector<vector<Ciphertext>> c;
     for (uint32_t i = 0; i < d; i++) {
         c.push_back(deserialize_ciphertexts(
+              context,
               count, 
               s.substr(i * count * len_ciphertext, count * len_ciphertext),
               len_ciphertext)
@@ -264,9 +272,11 @@ string serialize_galoiskeys(GaloisKeys g) {
     return output.str();
 }
 
-GaloisKeys *deserialize_galoiskeys(string s) {
+GaloisKeys *deserialize_galoiskeys(
+    std::shared_ptr<SEALContext> context, string s) {
+
     GaloisKeys *g = new GaloisKeys();
     std::istringstream input(s);
-    g->unsafe_load(input);
+    g->unsafe_load(context, input);
     return g;
 }

@@ -10,8 +10,8 @@ PIRServer::PIRServer(const EncryptionParameters &params, const PirParams &pir_pa
     pir_params_(pir_params),
     is_db_preprocessed_(false)
 {
-    auto context = SEALContext::Create(params, false);
-    evaluator_ = make_unique<Evaluator>(context);
+    context_ = SEALContext::Create(params, false);
+    evaluator_ = make_unique<Evaluator>(context_);
 }
 
 void PIRServer::preprocess_database() {
@@ -19,7 +19,7 @@ void PIRServer::preprocess_database() {
 
         for (uint32_t i = 0; i < db_->size(); i++) {
             evaluator_->transform_to_ntt_inplace(
-                db_->operator[](i), params_.parms_id());
+                db_->operator[](i), context_->first_parms_id());
         }
 
         is_db_preprocessed_ = true;
@@ -123,7 +123,7 @@ void PIRServer::set_database(const std::unique_ptr<const std::uint8_t[]> &bytes,
 }
 
 void PIRServer::set_galois_key(std::uint32_t client_id, seal::GaloisKeys galkey) {
-    galkey.parms_id() = params_.parms_id();
+    galkey.parms_id() = context_->first_parms_id();
     galoisKeys_[client_id] = galkey;
 }
 
@@ -193,7 +193,8 @@ PirReply PIRServer::generate_reply(PirQuery query, uint32_t client_id) {
         // Transform plaintext to NTT. If database is pre-processed, can skip
         if ((!is_db_preprocessed_) || i > 0) {
             for (uint32_t jj = 0; jj < cur->size(); jj++) {
-                evaluator_->transform_to_ntt_inplace((*cur)[jj], params_.parms_id());
+                evaluator_->transform_to_ntt_inplace((*cur)[jj],
+                    context_->first_parms_id());
             }
         }
 

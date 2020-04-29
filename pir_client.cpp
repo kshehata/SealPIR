@@ -53,7 +53,7 @@ PirQuery PIRClient::generate_query(uint64_t desiredIndex) {
             }
             Ciphertext dest;
             encryptor_->encrypt(pt, dest);
-            dest.parms_id() = params_.parms_id();
+            dest.parms_id() = newcontext_->first_parms_id();
             result[i].push_back(dest);
         }   
     }
@@ -136,7 +136,7 @@ Plaintext PIRClient::decode_reply(PirReply reply) {
 
 GaloisKeys PIRClient::generate_galois_keys() {
     // Generate the Galois keys needed for coeff_select.
-    vector<uint64_t> galois_elts;
+    vector<uint32_t> galois_elts;
     int N = params_.poly_modulus_degree();
     int logN = get_power_of_two(N);
 
@@ -148,7 +148,9 @@ GaloisKeys PIRClient::generate_galois_keys() {
 //#endif
     }
 
-    return keygen_->galois_keys(pir_params_.dbc, galois_elts);
+    // TODO check that it's ok to drop this param?
+    // return keygen_->galois_keys(pir_params_.dbc, galois_elts);
+    return keygen_->galois_keys_local(galois_elts);
 }
 
 Ciphertext PIRClient::compose_to_ciphertext(vector<Plaintext> plains) {
@@ -202,7 +204,7 @@ Ciphertext PIRClient::compose_to_ciphertext(vector<Plaintext> plains) {
         }
     }
 
-    result.parms_id() = params_.parms_id();
+    result.parms_id() = newcontext_->first_parms_id();
     return result;
 }
 
