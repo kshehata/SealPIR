@@ -7,13 +7,14 @@ project(SealPIR VERSION 2.1 LANGUAGES CXX)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/bin)
 
 set(EXTERNAL_DIR ${SealPIR_SOURCE_DIR}/external)
+set(SEAL_SRC_DIR ${EXTERNAL_DIR}/seal/src/native/src)
 
 message(STATUS "Setting up SEAL ...")
 execute_process(
     COMMAND ${CMAKE_COMMAND} -G "${CMAKE_GENERATOR}" .
     OUTPUT_QUIET
     RESULT_VARIABLE result
-    WORKING_DIRECTORY ${EXTERNAL_DIR}/seal)
+    WORKING_DIRECTORY ${SEAL_SRC_DIR})
 if(result)
     message(WARNING "Failed to download SEAL (${result})!")
 endif()
@@ -21,18 +22,17 @@ endif()
 execute_process(COMMAND ${CMAKE_COMMAND} --build .
     OUTPUT_QUIET
     RESULT_VARIABLE result
-    WORKING_DIRECTORY ${EXTERNAL_DIR}/seal)
+    WORKING_DIRECTORY ${SEAL_SRC_DIR})
 if(result)
     message(WARNING "Failed to build SEAL (${result})!")
 endif()
 
 add_subdirectory(
-  ${EXTERNAL_DIR}/seal/src
+  ${SEAL_SRC_DIR}
   ${EXTERNAL_DIR}/seal/build)
 
 include_directories(
-  ${EXTERNAL_DIR}/seal/src/native/src/
-  ${EXTERNAL_DIR}/seal/src/thirdparty/msgsl/src/include/)
+  ${SEAL_SRC_DIR})
 
 add_executable(main 
 	main.cpp

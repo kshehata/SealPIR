@@ -10,7 +10,7 @@ ExternalProject_Add(EP_SEAL
     SOURCE_DIR          ${CMAKE_CURRENT_LIST_DIR}/src
     BINARY_DIR          ${CMAKE_CURRENT_LIST_DIR}/build
     GIT_REPOSITORY      https://github.com/microsoft/SEAL.git
-    GIT_TAG             master
+    GIT_TAG             v3.2.0
     GIT_CONFIG          advice.detachedHead=false
     CMAKE_ARGS          -DCMAKE_BUILD_TYPE=Release -DCMAKE_POSITION_INDEPENDENT_CODE=ON
     CONFIGURE_COMMAND   ""
