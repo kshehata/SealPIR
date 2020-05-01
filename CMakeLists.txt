@@ -14,7 +14,7 @@ execute_process(
     COMMAND ${CMAKE_COMMAND} -G "${CMAKE_GENERATOR}" .
     OUTPUT_QUIET
     RESULT_VARIABLE result
-    WORKING_DIRECTORY ${SEAL_SRC_DIR})
+    WORKING_DIRECTORY ${EXTERNAL_DIR}/seal)
 if(result)
     message(WARNING "Failed to download SEAL (${result})!")
 endif()
@@ -22,7 +22,7 @@ endif()
 execute_process(COMMAND ${CMAKE_COMMAND} --build .
     OUTPUT_QUIET
     RESULT_VARIABLE result
-    WORKING_DIRECTORY ${SEAL_SRC_DIR})
+    WORKING_DIRECTORY ${EXTERNAL_DIR}/seal)
 if(result)
     message(WARNING "Failed to build SEAL (${result})!")
 endif()
