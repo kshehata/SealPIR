@@ -55,10 +55,6 @@ int main(int argc, char *argv[]) {
     PIRClient client(params, pir_params);
     GaloisKeys galois_keys = client.generate_galois_keys();
 
-    // Set galois key for client with id 0
-    cout << "Main: Setting Galois keys...";
-    server.set_galois_key(0, galois_keys);
-
     // Measure database setup
     auto time_pre_s = high_resolution_clock::now();
     server.set_database(move(db), number_of_items, size_per_item);
@@ -87,7 +83,7 @@ int main(int argc, char *argv[]) {
 
     // Measure query processing (including expansion)
     auto time_server_s = high_resolution_clock::now();
-    PirReply reply = server.generate_reply(query, 0);
+    PirReply reply = server.generate_reply(query, galois_keys);
     auto time_server_e = high_resolution_clock::now();
     auto time_server_us = duration_cast<microseconds>(time_server_e - time_server_s).count();
 

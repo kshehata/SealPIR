@@ -122,12 +122,7 @@ void PIRServer::set_database(const std::unique_ptr<const std::uint8_t[]> &bytes,
     set_database(move(result));
 }
 
-void PIRServer::set_galois_key(std::uint32_t client_id, seal::GaloisKeys galkey) {
-    galkey.parms_id() = params_.parms_id();
-    galoisKeys_[client_id] = galkey;
-}
-
-PirReply PIRServer::generate_reply(PirQuery query, uint32_t client_id) {
+PirReply PIRServer::generate_reply(PirQuery query, const GaloisKeys& galkey) {
 
     vector<uint64_t> nvec = pir_params_.nvec;
     uint64_t product = 1;
@@ -164,7 +159,7 @@ PirReply PIRServer::generate_reply(PirQuery query, uint32_t client_id) {
                 total = n_i % N; 
             }
             cout << "-- expanding one query ctxt into " << total  << " ctxts "<< endl;
-            vector<Ciphertext> expanded_query_part = expand_query(query[i][j], total, client_id);
+            vector<Ciphertext> expanded_query_part = expand_query(query[i][j], total, galkey);
             expanded_query.insert(expanded_query.end(), std::make_move_iterator(expanded_query_part.begin()), 
                     std::make_move_iterator(expanded_query_part.end()));
             expanded_query_part.clear(); 
@@ -258,14 +253,12 @@ PirReply PIRServer::generate_reply(PirQuery query, uint32_t client_id) {
 }
 
 inline vector<Ciphertext> PIRServer::expand_query(const Ciphertext &encrypted, uint32_t m,
-                                           uint32_t client_id) {
+                                           const GaloisKeys& galkey) {
 
 #ifdef DEBUG
     uint64_t plainMod = params_.plain_modulus().value();
     cout << "PIRServer side plain modulus = " << plainMod << endl;
 #endif
-
-    GaloisKeys &galkey = galoisKeys_[client_id];
 
     // Assume that m is a power of 2. If not, round it to the next power of 2.
     uint32_t logm = ceil(log2(m));
