@@ -1,0 +1,66 @@
+syntax = "proto3";
+
+package pir;
+
+
+// Definition of PIR as a service.
+service PIRService {
+  // Request PIR Parameters to be used in generating queries.
+  rpc GetParams (PIRParametersRequest) returns (PIRParameters) {}
+
+  // Private query of the database using PIR.
+  rpc PrivateQuery (PIRQuery) returns (PIRReply) {}
+}
+
+// Empty message for requesting PIR Parameters.
+message PIRParametersRequest {
+}
+
+// Details of PIR and encryption sent by server to the client so the
+// client can properly formulate a query.
+message PIRParameters {
+
+  // Number of items present in the database.
+  uint64 items_in_db = 1;
+
+  // Size in bytes of each item in the database.
+  uint32 size_per_item = 2;
+
+  uint32 N = 3;
+  uint32 logt = 4;
+  uint32 d = 5;
+}
+
+// Message for encoding and updating the database. Database is composed of a set
+// of items, each of which is just a set of bytes. Each item in the database
+// must be the same length.
+message PIRDatabase {
+  message Item {
+    bytes value = 1;
+  }
+
+  // Each item in DB must have the same length!
+  repeated Item items = 1;
+}
+
+// A set of ciphertexts, used for queries or responses.
+message Ciphertexts {
+  repeated bytes ct = 1;
+}
+
+// Query sent from the client to the server. Includes 1 or more query
+// ciphertexts and a set of galois keys to be used.
+message PIRQuery {
+
+  // Each query may have 1 or more sets of 1 or more ciphertexts.
+  repeated Ciphertexts query = 1;
+
+  // Galois keys
+  bytes keys = 2;
+}
+
+// Response to a query, a set of ciphertexts.
+message PIRReply {
+  // Reply to query as a set of 1 or more serialized ciphertexts.
+  Ciphertexts reply = 1;
+}

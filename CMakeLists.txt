@@ -38,6 +38,13 @@ add_subdirectory(
 include_directories(
   ${SEAL_SRC_DIR})
 
+
+grpc_generate_cpp(PROTO_SRC PROTO_HEADER pir.proto)
+add_library(proto_lib
+  ${PROTO_SRC}
+  ${PROTO_HEADER}
+)
+
 add_executable(main 
 	main.cpp
 )
