@@ -7,23 +7,10 @@ using namespace seal::util;
 
 PIRServer::PIRServer(const EncryptionParameters &params, const PirParams &pir_params) :
     params_(params), 
-    pir_params_(pir_params),
-    is_db_preprocessed_(false)
+    pir_params_(pir_params)
 {
     auto context = SEALContext::Create(params, false);
     evaluator_ = make_unique<Evaluator>(context);
-}
-
-void PIRServer::preprocess_database() {
-    if (!is_db_preprocessed_) {
-
-        for (uint32_t i = 0; i < db_->size(); i++) {
-            evaluator_->transform_to_ntt_inplace(
-                db_->operator[](i), params_.parms_id());
-        }
-
-        is_db_preprocessed_ = true;
-    }
 }
 
 // Server takes over ownership of db and will free it when it exits
@@ -31,95 +18,13 @@ void PIRServer::set_database(unique_ptr<vector<Plaintext>> &&db) {
     if (!db) {
         throw invalid_argument("db cannot be null");
     }
+    for (const auto& p : *db) {
+        if (!p.is_ntt_form()) {
+            throw invalid_argument("all elements in db must be NTT form.");
+        }
+    }
 
     db_ = move(db);
-    is_db_preprocessed_ = false;
-}
-
-void PIRServer::set_database(const std::unique_ptr<const std::uint8_t[]> &bytes, 
-    uint64_t ele_num, uint64_t ele_size) {
-
-    uint32_t logt = floor(log2(params_.plain_modulus().value()));
-    uint32_t N = params_.poly_modulus_degree();
-
-    // number of FV plaintexts needed to represent all elements
-    uint64_t total = plaintexts_per_db(logt, N, ele_num, ele_size);
-
-    // number of FV plaintexts needed to create the d-dimensional matrix
-    uint64_t prod = 1;
-    for (uint32_t i = 0; i < pir_params_.nvec.size(); i++) {
-        prod *= pir_params_.nvec[i];
-    }
-    uint64_t matrix_plaintexts = prod;
-    assert(total <= matrix_plaintexts);
-
-    auto result = make_unique<vector<Plaintext>>();
-    result->reserve(matrix_plaintexts);
-
-    uint64_t ele_per_ptxt = elements_per_ptxt(logt, N, ele_size);
-    uint64_t bytes_per_ptxt = ele_per_ptxt * ele_size;
-
-    uint64_t db_size = ele_num * ele_size;
-
-    uint64_t coeff_per_ptxt = ele_per_ptxt * coefficients_per_element(logt, ele_size);
-    assert(coeff_per_ptxt <= N);
-
-    cout << "Server: total number of FV plaintext = " << total << endl;
-    cout << "Server: elements packed into each plaintext " << ele_per_ptxt << endl; 
-
-    uint32_t offset = 0;
-
-    for (uint64_t i = 0; i < total; i++) {
-
-        uint64_t process_bytes = 0;
-
-        if (db_size <= offset) {
-            break;
-        } else if (db_size < offset + bytes_per_ptxt) {
-            process_bytes = db_size - offset;
-        } else {
-            process_bytes = bytes_per_ptxt;
-        }
-
-        // Get the coefficients of the elements that will be packed in plaintext i
-        vector<uint64_t> coefficients = bytes_to_coeffs(logt, bytes.get() + offset, process_bytes);
-        offset += process_bytes;
-
-        uint64_t used = coefficients.size();
-
-        assert(used <= coeff_per_ptxt);
-
-        // Pad the rest with 1s
-        for (uint64_t j = 0; j < (N - used); j++) {
-            coefficients.push_back(1);
-        }
-
-        Plaintext plain;
-        vector_to_plaintext(coefficients, plain);
-        // cout << i << "-th encoded plaintext = " << plain.to_string() << endl; 
-        result->push_back(move(plain));
-    }
-
-    // Add padding to make database a matrix
-    uint64_t current_plaintexts = result->size();
-    assert(current_plaintexts <= total);
-
-#ifdef DEBUG
-    cout << "adding: " << matrix_plaintexts - current_plaintexts
-         << " FV plaintexts of padding (equivalent to: "
-         << (matrix_plaintexts - current_plaintexts) * elements_per_ptxt(logtp, N, ele_size)
-         << " elements)" << endl;
-#endif
-
-    vector<uint64_t> padding(N, 1);
-
-    for (uint64_t i = 0; i < (matrix_plaintexts - current_plaintexts); i++) {
-        Plaintext plain;
-        vector_to_plaintext(padding, plain);
-        result->push_back(plain);
-    }
-
-    set_database(move(result));
 }
 
 PirReply PIRServer::generate_reply(PirQuery query, const GaloisKeys& galkey) {
@@ -142,6 +47,12 @@ PirReply PIRServer::generate_reply(PirQuery query, const GaloisKeys& galkey) {
     int N = params_.poly_modulus_degree();
 
     int logt = floor(log2(params_.plain_modulus().value()));
+
+    for (const auto& p : *db_) {
+        if (!p.is_ntt_form()) {
+            throw invalid_argument("all elements in db must be NTT form.");
+        }
+    }
 
     cout << "expansion ratio = " << pir_params_.expansion_ratio << endl; 
     for (uint32_t i = 0; i < nvec.size(); i++) {
@@ -185,8 +96,8 @@ PirReply PIRServer::generate_reply(PirQuery query, const GaloisKeys& galkey) {
             evaluator_->transform_to_ntt_inplace(expanded_query[jj]);
         }
 
-        // Transform plaintext to NTT. If database is pre-processed, can skip
-        if ((!is_db_preprocessed_) || i > 0) {
+        // Transform plaintext to NTT, only for levels deeper than 0
+        if (i > 0) {
             for (uint32_t jj = 0; jj < cur->size(); jj++) {
                 evaluator_->transform_to_ntt_inplace((*cur)[jj], params_.parms_id());
             }

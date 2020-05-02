@@ -52,6 +52,7 @@ add_executable(main
 add_library(sealpir STATIC
   pir.cpp
   pir_client.cpp
+  pir_database.cpp
   pir_server.cpp
 )
 

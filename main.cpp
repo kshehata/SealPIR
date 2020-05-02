@@ -1,5 +1,6 @@
 #include "pir.hpp"
 #include "pir_client.hpp"
+#include "pir_database.hpp"
 #include "pir_server.hpp"
 #include <seal/seal.h>
 #include <chrono>
@@ -33,17 +34,11 @@ int main(int argc, char *argv[]) {
 
     // Create test database
     auto db(make_unique<uint8_t[]>(number_of_items * size_per_item));
-
-    // Copy of the database. We use this at the end to make sure we retrieved
-    // the correct element.
-    auto db_copy(make_unique<uint8_t[]>(number_of_items * size_per_item));
-
     random_device rd;
     for (uint64_t i = 0; i < number_of_items; i++) {
         for (uint64_t j = 0; j < size_per_item; j++) {
             auto val = rd() % 256;
             db.get()[(i * size_per_item) + j] = val;
-            db_copy.get()[(i * size_per_item) + j] = val;
         }
     }
 
@@ -57,8 +52,9 @@ int main(int argc, char *argv[]) {
 
     // Measure database setup
     auto time_pre_s = high_resolution_clock::now();
-    server.set_database(move(db), number_of_items, size_per_item);
-    server.preprocess_database();
+    auto pir_db = gen_database(db.get(), number_of_items, size_per_item,
+        params, pir_params);
+    server.set_database(move(pir_db));
     cout << "Main: database pre processed " << endl;
     auto time_pre_e = high_resolution_clock::now();
     auto time_pre_us = duration_cast<microseconds>(time_pre_e - time_pre_s).count();
@@ -99,9 +95,9 @@ int main(int argc, char *argv[]) {
 
     // Check that we retrieved the correct element
     for (uint32_t i = 0; i < size_per_item; i++) {
-        if (elems[(offset * size_per_item) + i] != db_copy.get()[(ele_index * size_per_item) + i]) {
+        if (elems[(offset * size_per_item) + i] != db.get()[(ele_index * size_per_item) + i]) {
             cout << "Main: elems " << (int)elems[(offset * size_per_item) + i] << ", db "
-                 << (int) db_copy.get()[(ele_index * size_per_item) + i] << endl;
+                 << (int) db.get()[(ele_index * size_per_item) + i] << endl;
             cout << "Main: PIR result wrong!" << endl;
             return -1;
         }
