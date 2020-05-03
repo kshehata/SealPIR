@@ -26,7 +26,7 @@ message PIRParameters {
   // Size in bytes of each item in the database.
   uint32 size_per_item = 2;
 
-  uint32 N = 3;
+  uint32 mod_degree = 3;
   uint32 logt = 4;
   uint32 d = 5;
 }

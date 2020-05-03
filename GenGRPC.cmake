@@ -11,6 +11,7 @@ function(GRPC_GENERATE_CPP SRCS HDRS)
     set(${SRCS})
     set(${HDRS})
     foreach(PROTO_FILE ${PROTO_FILES})
+        get_filename_component(PROTO_FILE_ABS ${PROTO_FILE} ABSOLUTE)
         get_filename_component(PROTO_FILE_WE ${PROTO_FILE} NAME_WE)
         set(PROTO_PB_CC "${CMAKE_CURRENT_BINARY_DIR}/${PROTO_FILE_WE}.pb.cc")
         set(PROTO_PB_H "${CMAKE_CURRENT_BINARY_DIR}/${PROTO_FILE_WE}.pb.h")
@@ -29,7 +30,7 @@ function(GRPC_GENERATE_CPP SRCS HDRS)
               --proto_path="${CMAKE_CURRENT_SOURCE_DIR}"
               --plugin=protoc-gen-grpc="${_GRPC_CPP_PLUGIN_EXECUTABLE}"
               ${PROTO_FILE}
-            DEPENDS ${ABS_FIL} ${_PROTOBUF_PROTOC} ${_GRPC_CPP_PLUGIN_EXECUTABLE}
+            DEPENDS ${PROTO_FILE_ABS} ${_PROTOBUF_PROTOC} ${_GRPC_CPP_PLUGIN_EXECUTABLE}
             COMMENT "Running C++ protocol buffer compiler on ${PROTO_FILE}"
         )
     endforeach()

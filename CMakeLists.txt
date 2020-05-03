@@ -57,6 +57,16 @@ add_library(sealpir STATIC
   pir_server.cpp
 )
 
-# find_package(SEAL 3.5.0 EXACT REQUIRED)
-
 target_link_libraries(main sealpir seal proto_lib ${_PROTOBUF_LIBPROTOBUF})
+
+
+add_executable(server rpc_server.cpp ${PROTO_HEADER})
+
+target_link_libraries(server
+  proto_lib
+  seal
+  sealpir
+  ${_REFLECTION}
+  ${_GRPC_GRPCPP}
+  ${_PROTOBUF_LIBPROTOBUF}
+)
