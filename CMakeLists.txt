@@ -50,6 +50,7 @@ add_executable(main
 )
 
 add_library(sealpir STATIC
+  ${PROTO_HEADER}
   pir.cpp
   pir_client.cpp
   pir_database.cpp
@@ -58,4 +59,4 @@ add_library(sealpir STATIC
 
 # find_package(SEAL 3.5.0 EXACT REQUIRED)
 
-target_link_libraries(main sealpir seal)
+target_link_libraries(main sealpir seal proto_lib ${_PROTOBUF_LIBPROTOBUF})

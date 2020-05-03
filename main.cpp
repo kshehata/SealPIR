@@ -26,21 +26,29 @@ int main(int argc, char *argv[]) {
     EncryptionParameters params(scheme_type::BFV);
     PirParams pir_params;
 
+    cout << "Loading database from file" << endl;
+    auto pbdb = load_database_from_file("test.pb");
+    // auto pbdb = make_unique<PIRDatabase>();
+
     // Generates all parameters
     cout << "Main: Generating all parameters" << endl;
     gen_params(number_of_items, size_per_item, N, logt, d, params, pir_params);
 
-    cout << "Main: Initializing the database (this may take some time) ..." << endl;
+    // cout << "Main: Initializing the database (this may take some time) ..." << endl;
 
     // Create test database
-    auto db(make_unique<uint8_t[]>(number_of_items * size_per_item));
+    // auto db(make_unique<uint8_t[]>(number_of_items * size_per_item));
     random_device rd;
-    for (uint64_t i = 0; i < number_of_items; i++) {
-        for (uint64_t j = 0; j < size_per_item; j++) {
-            auto val = rd() % 256;
-            db.get()[(i * size_per_item) + j] = val;
-        }
-    }
+    // for (uint64_t i = 0; i < number_of_items; i++) {
+    //     for (uint64_t j = 0; j < size_per_item; j++) {
+    //         auto val = rd() % 256;
+    //         db.get()[(i * size_per_item) + j] = val;
+    //     }
+    //     auto item = pbdb->add_item();
+    //     item->set_value(db.get() + (i * size_per_item), size_per_item);
+    // }
+
+    // save_database_to_file(*pbdb, "test.pb");
 
     // Initialize PIR Server
     cout << "Main: Initializing server and client" << endl;
@@ -52,8 +60,7 @@ int main(int argc, char *argv[]) {
 
     // Measure database setup
     auto time_pre_s = high_resolution_clock::now();
-    auto pir_db = gen_database(db.get(), number_of_items, size_per_item,
-        params, pir_params);
+    auto pir_db = gen_database(*pbdb, params, pir_params);
     server.set_database(move(pir_db));
     cout << "Main: database pre processed " << endl;
     auto time_pre_e = high_resolution_clock::now();
@@ -95,9 +102,11 @@ int main(int argc, char *argv[]) {
 
     // Check that we retrieved the correct element
     for (uint32_t i = 0; i < size_per_item; i++) {
-        if (elems[(offset * size_per_item) + i] != db.get()[(ele_index * size_per_item) + i]) {
+        if (elems[(offset * size_per_item) + i]
+            != (uint8_t)pbdb->item(ele_index).value()[i]) {
+
             cout << "Main: elems " << (int)elems[(offset * size_per_item) + i] << ", db "
-                 << (int) db.get()[(ele_index * size_per_item) + i] << endl;
+                 << (int) (uint8_t)pbdb->item(ele_index).value()[i] << endl;
             cout << "Main: PIR result wrong!" << endl;
             return -1;
         }

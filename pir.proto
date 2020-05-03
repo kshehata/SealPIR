@@ -40,7 +40,7 @@ message PIRDatabase {
   }
 
   // Each item in DB must have the same length!
-  repeated Item items = 1;
+  repeated Item item = 1;
 }
 
 // A set of ciphertexts, used for queries or responses.

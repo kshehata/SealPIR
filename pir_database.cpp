@@ -1,6 +1,11 @@
 #include "pir_database.hpp"
 
+#include <google/protobuf/text_format.h>
+#include <google/protobuf/io/zero_copy_stream.h>
+#include <google/protobuf/io/zero_copy_stream_impl.h>
 #include <iostream>
+#include <unistd.h>
+#include <fcntl.h>
 
 using std::cout;
 using std::endl;
@@ -93,6 +98,75 @@ std::unique_ptr<Database> gen_database(
 
     preprocess_database(result.get(), params);
     return move(result);
+}
+
+std::unique_ptr<Database> gen_database(
+    const PIRDatabase& pbdb,
+    const EncryptionParameters& params, const PirParams& pir_params) {
+
+    // N means something different here. Need to figure out another
+    // way to do consistency check.
+    // if (pbdb.item_size() != pir_params.n) {
+    //   cout << "DB size mismatch, pb has " << pbdb.item_size()
+    //       << " while PIR params has " << pir_params.n << endl;
+    //   throw std::invalid_argument("Database size does not match PIR params");
+    // }
+
+    uint32_t min_size = 1;
+    uint32_t max_size = 0;
+    for (const auto& item : pbdb.item()) {
+        auto s = item.value().size();
+        if (min_size > max_size) {
+            min_size = s;
+            max_size = s;
+        } else if (s > max_size) {
+            max_size = s;
+        } else if (s < min_size) {
+            min_size = s;
+        }
+    }
+
+    if (min_size != max_size) {
+        throw std::invalid_argument("Database item size inconsistent");
+    }
+
+    uint64_t number_of_items = pbdb.item_size();
+    uint64_t size_per_item = max_size;
+    auto db(std::make_unique<uint8_t[]>(number_of_items * size_per_item));
+
+    for (uint32_t i = 0; i < number_of_items; ++i) {
+        std::memcpy(db.get() + (i * size_per_item),
+          pbdb.item(i).value().c_str(), size_per_item);
+    }
+
+    return move(gen_database(db.get(), number_of_items, size_per_item,
+      params, pir_params));
+}
+
+unique_ptr<PIRDatabase> load_database_from_file(const string& filename) {
+  int fd = open(filename.c_str(), O_RDONLY);
+  // unique_ptr<google::protobuf::io::ZeroCopyInputStream> fin
+  //     = std::make_unique<google::protobuf::io::FileInputStream>(fd);
+  auto db(std::make_unique<PIRDatabase>());
+  // if (!google::protobuf::TextFormat::Parse(fin.get(), db.get())) {
+  if (!db->ParseFromFileDescriptor(fd)) {
+    close(fd);
+    throw std::invalid_argument("Could not load db from file");
+  }
+  close(fd);
+  return move(db);
+}
+
+void save_database_to_file(const PIRDatabase& db, const string& filename) {
+  int fd = open(filename.c_str(), O_WRONLY | O_CREAT | O_TRUNC);
+  // unique_ptr<google::protobuf::io::ZeroCopyOutputStream> fout
+  //     = std::make_unique<google::protobuf::io::FileOutputStream>(fd);
+  // if (!google::protobuf::TextFormat::Print(db, fout.get())) {
+  if (!db.SerializeToFileDescriptor(fd)) {
+    close(fd);
+    throw std::invalid_argument("Could not save db to file");
+  }
+  close(fd);
 }
 
 // Helper to preprocess database.
