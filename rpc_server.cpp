@@ -93,6 +93,7 @@ void RunServer(const string& db_filename) {
   auto params = make_unique<PIRParameters>();
   params->set_items_in_db(db->item_size());
   params->set_size_per_item(db->item(0).value().size());
+  // TODO(kshehata): These should really be configurable.
   params->set_mod_degree(2048);
   params->set_logt(12);
   params->set_d(2);

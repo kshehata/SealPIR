@@ -81,3 +81,14 @@ target_link_libraries(client
   ${_GRPC_GRPCPP}
   ${_PROTOBUF_LIBPROTOBUF}
 )
+
+add_executable(gen_db gen_db.cpp ${PROTO_HEADER})
+
+target_link_libraries(gen_db
+  proto_lib
+  seal
+  sealpir
+  ${_REFLECTION}
+  ${_GRPC_GRPCPP}
+  ${_PROTOBUF_LIBPROTOBUF}
+)

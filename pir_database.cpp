@@ -158,7 +158,8 @@ unique_ptr<PIRDatabase> load_database_from_file(const string& filename) {
 }
 
 void save_database_to_file(const PIRDatabase& db, const string& filename) {
-  int fd = open(filename.c_str(), O_WRONLY | O_CREAT | O_TRUNC);
+  int fd = open(filename.c_str(), O_WRONLY | O_CREAT | O_TRUNC,
+    S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
   // unique_ptr<google::protobuf::io::ZeroCopyOutputStream> fout
   //     = std::make_unique<google::protobuf::io::FileOutputStream>(fd);
   // if (!google::protobuf::TextFormat::Print(db, fout.get())) {
