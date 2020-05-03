@@ -70,3 +70,14 @@ target_link_libraries(server
   ${_GRPC_GRPCPP}
   ${_PROTOBUF_LIBPROTOBUF}
 )
+
+add_executable(client rpc_client.cpp ${PROTO_HEADER})
+
+target_link_libraries(client
+  proto_lib
+  seal
+  sealpir
+  ${_REFLECTION}
+  ${_GRPC_GRPCPP}
+  ${_PROTOBUF_LIBPROTOBUF}
+)
