@@ -264,9 +264,9 @@ string serialize_galoiskeys(GaloisKeys g) {
     return output.str();
 }
 
-GaloisKeys *deserialize_galoiskeys(string s) {
-    GaloisKeys *g = new GaloisKeys();
+GaloisKeys deserialize_galoiskeys(string s) {
+    GaloisKeys g;
     std::istringstream input(s);
-    g->unsafe_load(input);
+    g.unsafe_load(input);
     return g;
 }

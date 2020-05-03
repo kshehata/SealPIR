@@ -9,6 +9,8 @@
 #include <grpcpp/ext/proto_server_reflection_plugin.h>
 
 #include "pir.grpc.pb.h"
+#include "pir.hpp"
+#include "pir_database.hpp"
 #include "pir_server.hpp"
 
 using std::chrono::duration_cast;
@@ -59,9 +61,24 @@ public:
   }
 
   Status PrivateQuery(ServerContext* context, const PIRQuery* request,
-                  PIRReply* reply) override {
-    cout << "Query not yet implemented" << endl;
-    return Status(grpc::StatusCode::INVALID_ARGUMENT, "not yet implemented");
+                  PIRReply* result) override {
+
+    cout << "Deserializing Galois Keys" << endl;
+    seal::GaloisKeys galois_keys = deserialize_galoiskeys(request->keys());
+
+    cout << "Deserializing query" << endl;
+    PirQuery query = deserialize_pir_query(*request);
+
+    cout << "Processing query" << endl;
+    auto time_server_s = high_resolution_clock::now();
+    PirReply reply = pir_server_->generate_reply(query, galois_keys);
+    auto time_server_e = high_resolution_clock::now();
+    auto time_server_us = duration_cast<microseconds>(time_server_e - time_server_s).count();
+    cout << "PIRServer reply generation time: " << time_server_us / 1000 << " ms"
+         << endl;
+
+    serialize_ciphertexts(reply, result->mutable_reply());
+    return Status::OK;
   }  
 
 private:

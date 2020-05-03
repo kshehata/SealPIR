@@ -38,4 +38,18 @@ void save_database_to_file(const PIRDatabase& db, const string& filename);
 // Helper to preprocess database.
 void preprocess_database(Database* db, const EncryptionParameters& params);
 
+
+string serialize_ciphertext(const seal::Ciphertext& c) ;
+
+void serialize_ciphertexts(const vector<seal::Ciphertext>& cv,
+    pir::Ciphertexts* ctpb);
+
+void serialize_pir_query(const PirQuery& pir_query, pir::PIRQuery* query_pb);
+
+seal::Ciphertext deserialize_ciphertext(const string& s);
+
+vector<seal::Ciphertext> deserialize_ciphertexts(const pir::Ciphertexts& ctpb);
+
+PirQuery deserialize_pir_query(const pir::PIRQuery& query_pb);
+
 #endif  // SEALPIR_RPC_SERVER_H

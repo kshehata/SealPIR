@@ -179,3 +179,49 @@ void preprocess_database(Database* db, const EncryptionParameters& params) {
             db->operator[](i), params.parms_id());
     }
 }
+
+string serialize_ciphertext(const seal::Ciphertext& c) {
+    std::ostringstream output;
+    c.save(output);
+    return output.str();
+}
+
+void serialize_ciphertexts(const vector<seal::Ciphertext>& cv,
+    pir::Ciphertexts* ctpb) {
+
+    for (const auto& c: cv) {
+      ctpb->add_ct(serialize_ciphertext(c));
+    }
+}
+
+void serialize_pir_query(const PirQuery& pir_query, pir::PIRQuery* query_pb) {
+  for (const auto& q : pir_query) {
+    serialize_ciphertexts(q, query_pb->add_query());
+  }
+}
+
+
+seal::Ciphertext deserialize_ciphertext(const string& s) {
+    seal::Ciphertext c;
+    std::istringstream input(s);
+    c.unsafe_load(input);
+    return c;
+}
+
+vector<seal::Ciphertext> deserialize_ciphertexts(const pir::Ciphertexts& ctpb) {
+    vector<seal::Ciphertext> cv;
+    cv.reserve(ctpb.ct_size());
+    for (const auto& c : ctpb.ct()) {
+        cv.push_back(deserialize_ciphertext(c));
+    }
+    return cv;
+}
+
+PirQuery deserialize_pir_query(const pir::PIRQuery& query_pb) {
+  PirQuery pir_query;
+  pir_query.reserve(query_pb.query_size());
+  for (const auto& q : query_pb.query()) {
+    pir_query.push_back(deserialize_ciphertexts(q));
+  }
+  return pir_query;
+}
