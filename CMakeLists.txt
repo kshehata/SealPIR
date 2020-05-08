@@ -20,7 +20,7 @@ execute_process(
     RESULT_VARIABLE result
     WORKING_DIRECTORY ${EXTERNAL_DIR}/seal)
 if(result)
-    message(WARNING "Failed to download SEAL (${result})!")
+    message(FATAL_ERROR "Failed to download SEAL (${result})!")
 endif()
 
 execute_process(COMMAND ${CMAKE_COMMAND} --build .
@@ -28,7 +28,7 @@ execute_process(COMMAND ${CMAKE_COMMAND} --build .
     RESULT_VARIABLE result
     WORKING_DIRECTORY ${EXTERNAL_DIR}/seal)
 if(result)
-    message(WARNING "Failed to build SEAL (${result})!")
+    message(FATAL_ERROR "Failed to build SEAL (${result})!")
 endif()
 
 add_subdirectory(
@@ -92,3 +92,47 @@ target_link_libraries(gen_db
   ${_GRPC_GRPCPP}
   ${_PROTOBUF_LIBPROTOBUF}
 )
+
+
+#####################################################################
+# Token Transforms
+#####################################################################
+
+message(STATUS "Setting up libsodium ...")
+execute_process(
+    COMMAND ${CMAKE_COMMAND} -G "${CMAKE_GENERATOR}" .
+    OUTPUT_QUIET
+    RESULT_VARIABLE result
+    WORKING_DIRECTORY ${EXTERNAL_DIR}/libsodium)
+if(result)
+    message(FATAL_ERROR "Failed to download libsodium (${result})!")
+endif()
+
+message(STATUS "Building libsodium ...")
+execute_process(COMMAND ${CMAKE_COMMAND} --build .
+    OUTPUT_QUIET
+    RESULT_VARIABLE result
+    WORKING_DIRECTORY ${EXTERNAL_DIR}/libsodium)
+if(result)
+    message(FATAL_ERROR "Failed to build libsodium (${result})!")
+endif()
+
+include_directories(
+  ${EXTERNAL_DIR}/libsodium/src/src/libsodium/include/)
+
+link_directories(
+  ${EXTERNAL_DIR}/libsodium/src/src/libsodium/.libs/)
+
+add_library(token_transforms_lib STATIC token_transforms.cpp)
+
+
+include(FetchGoogletest.cmake)
+enable_testing()
+
+add_executable(TokenTransformsTest token_transforms_test.cpp)
+target_link_libraries(TokenTransformsTest
+  token_transforms_lib
+  libsodium.a
+  gtest_main)
+add_test(TokenTransformsTest bin/TokenTransformsTest)
+
