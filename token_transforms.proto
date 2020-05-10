@@ -1,0 +1,15 @@
+syntax = "proto3";
+
+package epione;
+
+// Service for blinding tokens.
+service TokenBlindingService {
+  // TODO: do we need to indicate which version of k is used, in case it changes?
+  // For example: provide a salted hash of k?
+  rpc Blind (TokenSet) returns (TokenSet) {}
+}
+
+// TokenSet represents a set of tokens whether blinded or not.
+message TokenSet {
+  repeated bytes token = 1;
+}

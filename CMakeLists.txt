@@ -123,7 +123,17 @@ include_directories(
 link_directories(
   ${EXTERNAL_DIR}/libsodium/src/src/libsodium/.libs/)
 
-add_library(token_transforms_lib STATIC token_transforms.cpp)
+
+grpc_generate_cpp(TT_PROTO_SRC TT_PROTO_HEADER token_transforms.proto)
+add_library(token_transforms_proto_lib
+  ${TT_PROTO_SRC}
+  ${TT_PROTO_HEADER}
+)
+
+add_library(token_transforms_lib STATIC
+  token_transforms.cpp
+  token_transform_server.cpp
+)
 
 
 include(FetchGoogletest.cmake)
@@ -136,3 +146,15 @@ target_link_libraries(TokenTransformsTest
   gtest_main)
 add_test(TokenTransformsTest bin/TokenTransformsTest)
 
+
+add_executable(TokenTransformServerTest token_transform_server_test.cpp)
+target_link_libraries(TokenTransformServerTest
+  token_transforms_lib
+  token_transforms_proto_lib
+  libsodium.a
+  ${_REFLECTION}
+  ${_GRPC_GRPCPP}
+  ${_PROTOBUF_LIBPROTOBUF}
+  gmock
+  gtest_main)
+add_test(TokenTransformServerTest bin/TokenTransformServerTest)
