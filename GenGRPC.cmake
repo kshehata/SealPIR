@@ -26,7 +26,7 @@ function(GRPC_GENERATE_CPP SRCS HDRS)
               "${PROTO_GRPC_H}"
             COMMAND ${_PROTOBUF_PROTOC}
             ARGS --cpp_out="${CMAKE_CURRENT_BINARY_DIR}"
-              --grpc_out="${CMAKE_CURRENT_BINARY_DIR}"
+              --grpc_out=generate_mock_code=true:"${CMAKE_CURRENT_BINARY_DIR}"
               --proto_path="${CMAKE_CURRENT_SOURCE_DIR}"
               --plugin=protoc-gen-grpc="${_GRPC_CPP_PLUGIN_EXECUTABLE}"
               ${PROTO_FILE}

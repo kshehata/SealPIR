@@ -2,8 +2,6 @@
 
 #include "token_transforms.hpp"
 
-#include <sodium.h>
-
 namespace epione {
 
 TokenTransformServer TokenTransformServer::Create(const string& k) {

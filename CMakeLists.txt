@@ -133,6 +133,7 @@ add_library(token_transforms_proto_lib
 add_library(token_transforms_lib STATIC
   token_transforms.cpp
   token_transform_server.cpp
+  token_transform_client.cpp
 )
 
 
@@ -158,3 +159,15 @@ target_link_libraries(TokenTransformServerTest
   gmock
   gtest_main)
 add_test(TokenTransformServerTest bin/TokenTransformServerTest)
+
+add_executable(TokenTransformClientTest token_transform_client_test.cpp)
+target_link_libraries(TokenTransformClientTest
+  token_transforms_lib
+  token_transforms_proto_lib
+  libsodium.a
+  ${_REFLECTION}
+  ${_GRPC_GRPCPP}
+  ${_PROTOBUF_LIBPROTOBUF}
+  gmock
+  gtest_main)
+add_test(TokenTransformClientTest bin/TokenTransformClientTest)
