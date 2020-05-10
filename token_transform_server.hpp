@@ -23,16 +23,21 @@ using grpc::Status;
 // tokens using the inverse of r.
 class TokenTransformServer final : public TokenBlindingService::Service {
 public:
-  // Since k will likely be a server configuration item, make sure to provide
-  // it. For testing or other cases, can be random.
-  TokenTransformServer(const string& k);
   ~TokenTransformServer(){}
 
   Status Blind(ServerContext* context, const TokenSet* input_tokens, 
     TokenSet* output_tokens);
-  
+
+  // Create a server with the given k. Key must be correct length and not all
+  // zero, or invalid_argument is thrown.
+  static TokenTransformServer Create(const string& k);
+
 private:
   string k_;
+
+  // Since k will likely be a server configuration item, make sure to provide
+  // it. For testing or other cases, can be random.
+  TokenTransformServer(const string& k);
 };
 
 }  // namespace epione

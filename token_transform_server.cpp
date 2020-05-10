@@ -6,9 +6,15 @@
 
 namespace epione {
 
+TokenTransformServer TokenTransformServer::Create(const string& k) {
+  if (k.size() != crypto_core_ristretto255_SCALARBYTES) {
+    throw std::invalid_argument("Incorrect size for k");
+  }
+  return TokenTransformServer(k);
+}
+
 TokenTransformServer::TokenTransformServer(const string& k)
     : k_(k) {
-  // TODO: validate k here. Problem is that we can't throw. Can we?
 }
 
 

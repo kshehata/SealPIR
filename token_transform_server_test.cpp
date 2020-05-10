@@ -48,7 +48,7 @@ const unsigned char sample_token_array[] =
 
 TEST(TokenTransformServerTest, BlindSingleToken) {
   ASSERT_GE(sodium_init(), 0);
-  TokenTransformServer server(sample_k);
+  TokenTransformServer server = TokenTransformServer::Create(sample_k);
 
   string sample_token = string((char*)sample_token_array, 16);
   TokenSet input_ts;
@@ -65,7 +65,7 @@ TEST(TokenTransformServerTest, BlindSingleToken) {
 
 TEST(TokenTransformServerTest, BlindTokenSet) {
   ASSERT_GE(sodium_init(), 0);
-  TokenTransformServer server(sample_k);
+  TokenTransformServer server = TokenTransformServer::Create(sample_k);
 
   TokenSet input_ts;
   TokenSet output_ts;
@@ -86,6 +86,17 @@ TEST(TokenTransformServerTest, BlindTokenSet) {
   // But should *not* be in the default order
   EXPECT_THAT(output_ts.token(),
     Not(ElementsAreArray(expected_output)));
+}
+
+
+TEST(TokenTransformServerTest, CreateWithEmptyKThrowsInvalidArgument) {
+  ASSERT_THROW(TokenTransformServer::Create(""), std::invalid_argument);
+}
+
+TEST(TokenTransformServerTest, CreateWithShortKThrowsInvalidArgument) {
+  auto k = sample_k;
+  k.resize(k.size() - 2);
+  ASSERT_THROW(TokenTransformServer::Create(k), std::invalid_argument);
 }
 
 }  // namespace testing
