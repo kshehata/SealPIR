@@ -47,15 +47,15 @@ const unsigned char sample_token_array[] =
      0xfd, 0x08, 0x16, 0x5b, 0x96, 0x35, 0x48, 0x87};
 
 TEST(TokenTransformServerTest, BlindSingleToken) {
-  ASSERT_GE(sodium_init(), 0);
+  ASSERT_THAT(sodium_init(), Ge(0));
   TokenTransformServer server = TokenTransformServer::Create(sample_k);
 
-  string sample_token = string((char*)sample_token_array, 16);
+  string sample_token = string((char*)sample_token_array, TOKEN_SIZE);
   TokenSet input_ts;
   TokenSet output_ts;
-  input_ts.add_token(sample_token);
+  input_ts.add_token(value_to_element(sample_token));
 
-  server.Blind(nullptr, &input_ts, &output_ts);
+  EXPECT_THAT(server.Blind(nullptr, &input_ts, &output_ts).ok(), IsTrue());
 
   string expected_output_token =
       blind_token(sample_token, sample_k);
@@ -64,20 +64,20 @@ TEST(TokenTransformServerTest, BlindSingleToken) {
 }
 
 TEST(TokenTransformServerTest, BlindTokenSet) {
-  ASSERT_GE(sodium_init(), 0);
+  ASSERT_THAT(sodium_init(), Ge(0));
   TokenTransformServer server = TokenTransformServer::Create(sample_k);
 
   TokenSet input_ts;
   TokenSet output_ts;
   vector<string> expected_output;
 
-  for (int i = 0; i < sizeof(sample_token_array); i += 16) {
-    string t((char*)sample_token_array + i, 16);
+  for (int i = 0; i < sizeof(sample_token_array); i += TOKEN_SIZE) {
+    string t((char*)sample_token_array + i, TOKEN_SIZE);
     expected_output.push_back(blind_token(t, sample_k));
-    input_ts.add_token(t);
+    input_ts.add_token(value_to_element(t));
   }
 
-  server.Blind(nullptr, &input_ts, &output_ts);
+  EXPECT_THAT(server.Blind(nullptr, &input_ts, &output_ts).ok(), IsTrue());
 
   // Check that the blinded values for all tokens are present
   EXPECT_THAT(output_ts.token(), 
@@ -88,6 +88,26 @@ TEST(TokenTransformServerTest, BlindTokenSet) {
     Not(ElementsAreArray(expected_output)));
 }
 
+
+TEST(TokenTransformServerTest, BlindTokenTooShortReturnsInvalidArgumentStatus) {
+  ASSERT_THAT(sodium_init(), Ge(0));
+  TokenTransformServer server = TokenTransformServer::Create(sample_k);
+
+  TokenSet input_ts;
+  TokenSet output_ts;
+
+  for (int i = 0; i < sizeof(sample_token_array); i += TOKEN_SIZE) {
+    string t((char*)sample_token_array + i, TOKEN_SIZE);
+    auto p = value_to_element(t);
+    if (i == 2 * TOKEN_SIZE) {
+      p.resize(p.size() - 2);
+    }
+    input_ts.add_token(p);
+  }
+
+  EXPECT_THAT(server.Blind(nullptr, &input_ts, &output_ts).error_code(), 
+    Eq(grpc::INVALID_ARGUMENT));
+}
 
 TEST(TokenTransformServerTest, CreateWithEmptyKThrowsInvalidArgument) {
   ASSERT_THROW(TokenTransformServer::Create(""), std::invalid_argument);

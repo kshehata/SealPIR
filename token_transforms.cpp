@@ -10,7 +10,7 @@ string generate_random_scalar() {
   return r;
 }
 
-string value_to_group(const string& value) {
+string value_to_element(const string& value) {
   unsigned char x[crypto_core_ristretto255_HASHBYTES];
   crypto_generichash(x, crypto_core_ristretto255_HASHBYTES,
     (unsigned char*)value.data(), value.size(), NULL, 0);
@@ -19,18 +19,29 @@ string value_to_group(const string& value) {
   return p;
 }
 
-string blind_token(const string& token, const string& r) {
+bool is_valid_element(const string& p) {
+  return p.size() == GROUP_ELEMENT_SIZE &&
+      crypto_core_ristretto255_is_valid_point((unsigned char*)p.data());
+}
+
+string blind_element(const string& u, const string& r) {
   if (r.size() != crypto_core_ristretto255_SCALARBYTES) {
     throw std::invalid_argument("Scalar r incorrect size");
   }
-  auto p = value_to_group(token);
+  if (u.size() != crypto_core_ristretto255_BYTES) {
+    throw std::invalid_argument("Group element u incorrect size");
+  }
   string v(crypto_core_ristretto255_BYTES, 0);
   if (crypto_scalarmult_ristretto255((unsigned char*)v.data(), 
-    (unsigned char*)r.data(), (unsigned char*)p.data()) != 0) {
+    (unsigned char*)r.data(), (unsigned char*)u.data()) != 0) {
     throw std::domain_error(
       "Could not compute group multiplication in blind_token");
   }
   return v;
+}
+
+string blind_token(const string& token, const string& r) {
+  return blind_element(value_to_element(token), r);
 }
 
 string unblind_element(const string&v, const string& r) {

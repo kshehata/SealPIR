@@ -1,43 +1,16 @@
 #include "token_transforms.hpp"
 
 #include <gtest/gtest.h>
+#include <gmock/gmock.h>
 #include <sodium.h>
 
 namespace testing {
 
-void EXPECT_NOT_ALL_ZERO(const string& v) {
-  for (auto c : v) {
-    if (c != (char)0) {
-      return;
-    }
-  }
-  FAIL() << "Value is all zero";
-}
-
-void EXPECT_NOT_EQUAL(const string& v1, const string& v2) {
-  ASSERT_EQ(v1.size(), v2.size());
-  for (size_t i = 0; i < v1.size(); ++i) {
-    if (v1[i] != v2[i]) {
-      return;
-    }
-  }
-  FAIL() << "Both strings equal";
-}
-
-void EXPECT_EQUAL(const string& v1, const string& v2) {
-  ASSERT_EQ(v1.size(), v2.size());
-  for (size_t i = 0; i < v1.size(); ++i) {
-    if (v1[i] != v2[i]) {
-      FAIL() << "Both strings not equal";
-    }
-  }
-}
-
 TEST(TokenTransformsTest, GenerateRandomScalar) {
-  ASSERT_GE(sodium_init(), 0);
+  ASSERT_THAT(sodium_init(), Ge(0));
   auto r = generate_random_scalar();
-  ASSERT_EQ(r.size(), crypto_core_ristretto255_SCALARBYTES);
-  EXPECT_NOT_ALL_ZERO(r);
+  ASSERT_THAT(r, SizeIs(SCALAR_SIZE));
+  EXPECT_THAT(r, Not(Each((char)0)));
 }
 
 const unsigned char sample_token_1_array[] =
@@ -53,27 +26,68 @@ const string sample_token_2((char*)sample_token_2_array,
   sizeof(sample_token_2_array));
 
 TEST(TokenTransformsTest, ValueToGroup) {
-  ASSERT_GE(sodium_init(), 0);  
-  ASSERT_EQ(sample_token_1.size(), 16);
-  ASSERT_EQ(sample_token_2.size(), 16);
+  ASSERT_THAT(sodium_init(), Ge(0));
+  ASSERT_THAT(sample_token_1, SizeIs(TOKEN_SIZE));
+  ASSERT_THAT(sample_token_2, SizeIs(TOKEN_SIZE));
 
-  string group_1 = value_to_group(sample_token_1);
-  ASSERT_EQ(group_1.size(), crypto_core_ristretto255_BYTES);
-  EXPECT_NOT_ALL_ZERO(group_1);
+  string group_1 = value_to_element(sample_token_1);
+  ASSERT_THAT(group_1, SizeIs(GROUP_ELEMENT_SIZE));
+  EXPECT_THAT(group_1, Not(Each((char)0)));
 
-  string group_2 = value_to_group(sample_token_2);
-  ASSERT_EQ(group_2.size(), crypto_core_ristretto255_BYTES);
-  EXPECT_NOT_ALL_ZERO(group_2);
+  string group_2 = value_to_element(sample_token_2);
+  ASSERT_THAT(group_2, SizeIs(GROUP_ELEMENT_SIZE));
+  EXPECT_THAT(group_2, Not(Each((char)0)));
 
-  EXPECT_NOT_EQUAL(group_1, group_2);
+  EXPECT_THAT(group_1, Not(ElementsAreArray(group_2)));
+}
+
+
+TEST(TokenTransformsTest, IsValidElementTrueForValidElement) {
+  string p = value_to_element(sample_token_1);
+  ASSERT_THAT(is_valid_element(p), IsTrue());
+}
+
+TEST(TokenTransformsTest, IsValidElementFalseOffByOne) {
+  string p = value_to_element(sample_token_1);
+  p[0] += 1;
+  ASSERT_THAT(is_valid_element(p), IsFalse());
+}
+
+TEST(TokenTransformsTest, IsValidElementFalseTooShort) {
+  string p = value_to_element(sample_token_1);
+  p.resize(p.size() - 1);
+  ASSERT_THAT(is_valid_element(p), IsFalse());
+}
+
+TEST(TokenTransformsTest, BlindElement) {
+  auto r = generate_random_scalar();
+  auto p = value_to_element(sample_token_1);
+  auto v = blind_element(p, r);
+  ASSERT_THAT(v, SizeIs(GROUP_ELEMENT_SIZE));
+  EXPECT_THAT(v, Not(Each((char)0)));
+  EXPECT_THAT(v, Not(ElementsAreArray(p)));
 }
 
 TEST(TokenTransformsTest, BlindToken) {
   auto r = generate_random_scalar();
   auto v = blind_token(sample_token_1, r);
-  ASSERT_EQ(v.size(), crypto_core_ristretto255_BYTES);
-  EXPECT_NOT_ALL_ZERO(v);
-  EXPECT_NOT_EQUAL(v, value_to_group(sample_token_1));
+  ASSERT_THAT(v, SizeIs(GROUP_ELEMENT_SIZE));
+  EXPECT_THAT(v, Not(Each((char)0)));
+  EXPECT_THAT(v, Not(ElementsAreArray(sample_token_1)));
+}
+
+TEST(TokenTransformsTest, BlindElement_RTooShortThrows) {
+  auto r = generate_random_scalar();
+  auto p = value_to_element(sample_token_1);
+  r.resize(r.size() / 2);
+  ASSERT_THROW(blind_element(p, r), std::invalid_argument);
+}
+
+TEST(TokenTransformsTest, BlindElement_ElementTooShortThrows) {
+  auto r = generate_random_scalar();
+  auto p = value_to_element(sample_token_1);
+  p.resize(p.size() / 2);
+  ASSERT_THROW(blind_element(p, r), std::invalid_argument);
 }
 
 TEST(TokenTransformsTest, BlindToken_RTooShortThrows) {
@@ -84,23 +98,23 @@ TEST(TokenTransformsTest, BlindToken_RTooShortThrows) {
 
 TEST(TokenTransformsTest, UnblindToken) {
   auto r = generate_random_scalar();
-  auto p = value_to_group(sample_token_1);
+  auto p = value_to_element(sample_token_1);
   auto v = blind_token(sample_token_1, r);
   auto u = unblind_element(v, r);
-  ASSERT_EQ(u.size(), crypto_core_ristretto255_BYTES);
-  EXPECT_EQUAL(u, p);
+  ASSERT_THAT(u, SizeIs(GROUP_ELEMENT_SIZE));
+  EXPECT_THAT(u, ElementsAreArray(p));
 }
 
-TEST(TokenTransformsTest, BlindElement_RTooShortThrows) {
+TEST(TokenTransformsTest, UnblindElement_RTooShortThrows) {
   auto r = generate_random_scalar();
-  auto p = value_to_group(sample_token_1);
+  auto p = value_to_element(sample_token_1);
   r.resize(r.size() / 2);
   ASSERT_THROW(unblind_element(p, r), std::invalid_argument);
 }
 
-TEST(TokenTransformsTest, BlindElement_ElementTooShortThrows) {
+TEST(TokenTransformsTest, UnblindElement_ElementTooShortThrows) {
   auto r = generate_random_scalar();
-  auto p = value_to_group(sample_token_1);
+  auto p = value_to_element(sample_token_1);
   p.resize(p.size() / 2);
   ASSERT_THROW(unblind_element(p, r), std::invalid_argument);
 }
