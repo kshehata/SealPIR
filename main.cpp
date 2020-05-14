@@ -14,12 +14,12 @@ using namespace seal;
 
 int main(int argc, char *argv[]) {
 
-    uint64_t number_of_items = 1 << 12;
+    uint64_t number_of_items = 1 << 10;
     uint64_t size_per_item = 288; // in bytes
-    uint32_t N = 2048;
+    uint32_t N = 4096;
 
     // Recommended values: (logt, d) = (12, 2) or (8, 1). 
-    uint32_t logt = 12; 
+    uint32_t logt = 16;
     uint32_t d = 2;
 
     EncryptionParameters params(scheme_type::BFV);
@@ -28,6 +28,12 @@ int main(int argc, char *argv[]) {
     // Generates all parameters
     cout << "Main: Generating all parameters" << endl;
     gen_params(number_of_items, size_per_item, N, logt, d, params, pir_params);
+
+    auto context = SEALContext::Create(params, false);
+    if (!context->parameters_set()) {
+        cout << "Main: failed to set encryption parameters: "
+            << context->parameter_error_message() << endl;
+    }
 
     cout << "Main: Initializing the database (this may take some time) ..." << endl;
 
@@ -48,24 +54,27 @@ int main(int argc, char *argv[]) {
     }
 
     // Initialize PIR Server
-    cout << "Main: Initializing server and client" << endl;
+    cout << "Main: Initializing server" << endl;
     PIRServer server(params, pir_params);
 
     // Initialize PIR client....
+    cout << "Main: Initializing client" << endl;
     PIRClient client(params, pir_params);
+    cout << "Main: Generating Galois Keys" << endl;
     GaloisKeys galois_keys = client.generate_galois_keys();
 
     // Set galois key for client with id 0
-    cout << "Main: Setting Galois keys...";
+    cout << "Main: Setting Galois keys..." << endl;
     server.set_galois_key(0, galois_keys);
 
     // Measure database setup
+    cout << "Main: pre processing database... " << endl;
     auto time_pre_s = high_resolution_clock::now();
     server.set_database(move(db), number_of_items, size_per_item);
     server.preprocess_database();
-    cout << "Main: database pre processed " << endl;
     auto time_pre_e = high_resolution_clock::now();
     auto time_pre_us = duration_cast<microseconds>(time_pre_e - time_pre_s).count();
+    cout << "Main: database pre processed " << endl;
 
     // Choose an index of an element in the DB
     uint64_t ele_index = rd() % number_of_items; // element in DB at random position

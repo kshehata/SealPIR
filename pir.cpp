@@ -37,9 +37,6 @@ void gen_params(uint64_t ele_num, uint64_t ele_size, uint32_t N, uint32_t logt,
                 PirParams &pir_params) {
     
     // Determine the maximum size of each dimension
-
-    // plain modulus = a power of 2 plus 1
-    uint64_t plain_mod = (static_cast<uint64_t>(1) << logt) + 1;
     uint64_t plaintext_num = plaintexts_per_db(logt, N, ele_num, ele_size);
 
 #ifdef DEBUG
@@ -49,8 +46,8 @@ void gen_params(uint64_t ele_num, uint64_t ele_size, uint32_t N, uint32_t logt,
 
     params.set_poly_modulus_degree(N);
     // TODO(kshehata): is this the correct way to do this?
-    params.set_coeff_modulus(CoeffModulus::Create(64, { 60 }));
-    params.set_plain_modulus(plain_mod);
+    params.set_coeff_modulus(CoeffModulus::BFVDefault(N));
+    params.set_plain_modulus(PlainModulus::Batching(N, logt));
 
     vector<uint64_t> nvec = get_dimensions(plaintext_num, d);
 
